@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recording Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
+            color: #ffffff;
+            transition: color 0.3s ease;
+        }
+
+        .title.recording {
+            color: #ff4444;
+        }
+
+        .record-btn {
+            background: #666666;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            margin-bottom: 2rem;
+        }
+
+        .record-btn:hover {
+            opacity: 0.8;
+        }
+
+        .record-btn:active {
+            transform: scale(0.98);
+        }
+
+        .record-btn.recording {
+            background: #cc3333;
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 600px;
+        }
+
+        .metadata-panel {
+            flex: 0 0 150px;
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #404040;
+            transition: all 0.3s ease;
+        }
+
+        .metadata-panel.collapsed {
+            flex: 0 0 auto;
+        }
+
+        .metadata-panel.collapsed .metadata-content {
+            display: none;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .collapse-btn {
+            background: #404040;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .collapse-btn:hover {
+            background: #555555;
+        }
+
+        .metadata-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metadata-content {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #cccccc;
+            border: 1px solid #404040;
+            height: calc(100% - 3rem);
+            overflow-y: auto;
+        }
+
+        .markdown-panel {
+            flex: 1;
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #404040;
+        }
+
+        .markdown-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .markdown-content {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid #404040;
+            height: calc(100% - 3rem);
+            overflow-y: auto;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.3rem;
+        }
+
+        .markdown-content code {
+            background: #404040;
+            color: #ffffff;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .markdown-content pre {
+            background: #404040;
+            color: #ffffff;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #666666;
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-bottom: 1rem;
+            color: #cccccc;
+        }
+
+        .markdown-content a {
+            color: #88ccff;
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title" id="main-title">Ready to Record</div>
+            <button class="record-btn" id="record-button" onclick="toggleRecord()">
+                ⏺ Record
+            </button>
+        </div>
+
+        <div class="content-area">
+            <div class="markdown-panel">
+                <div class="panel-header">
+                    <div class="markdown-title">Content</div>
+                    <button class="collapse-btn" onclick="togglePanel('markdown')">−</button>
+                </div>
+                <div class="markdown-content" id="markdown-display">
+                    <h2>Recording Interface</h2>
+                    <p>Dark mode interface ready for audio recording and transcription.</p>
+                    <ul>
+                        <li>Click Record to toggle recording state</li>
+                        <li>Metadata panel shows current status</li>
+                        <li>Content area will display transcribed text</li>
+                    </ul>
+                    <blockquote>
+                        <p>Interface ready for integration with recording services.</p>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="metadata-panel collapsed" id="metadata-panel">
+                <div class="panel-header">
+                    <div class="metadata-title">Metadata</div>
+                    <button class="collapse-btn" onclick="togglePanel('metadata')">+</button>
+                </div>
+                <div class="metadata-content" id="metadata-display">
+{
+  "status": "idle",
+  "timestamp": null,
+  "duration": 0,
+  "format": "webm",
+  "sampleRate": 48000,
+  "recording": false
+}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let recordingStartTime = null;
+
+        function togglePanel(panelType) {
+            if (panelType === 'metadata') {
+                const panel = document.getElementById('metadata-panel');
+                const btn = panel.querySelector('.collapse-btn');
+                
+                if (panel.classList.contains('collapsed')) {
+                    panel.classList.remove('collapsed');
+                    btn.textContent = '−';
+                } else {
+                    panel.classList.add('collapsed');
+                    btn.textContent = '+';
+                }
+            } else if (panelType === 'markdown') {
+                const panel = document.querySelector('.markdown-panel');
+                const content = panel.querySelector('.markdown-content');
+                const btn = panel.querySelector('.collapse-btn');
+                
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    btn.textContent = '−';
+                    panel.style.flex = '1';
+                } else {
+                    content.style.display = 'none';
+                    btn.textContent = '+';
+                    panel.style.flex = '0 0 auto';
+                }
+            }
+        }
+
+        function toggleRecord() {
+            const button = document.getElementById('record-button');
+            const title = document.getElementById('main-title');
+            const metadataPanel = document.getElementById('metadata-panel');
+            
+            isRecording = !isRecording;
+            
+            if (isRecording) {
+                // Start recording
+                recordingStartTime = new Date();
+                button.textContent = '⏹ Recording';
+                button.classList.add('recording');
+                title.textContent = 'Recording...';
+                title.classList.add('recording');
+                
+                // Open metadata panel when recording starts
+                if (metadataPanel.classList.contains('collapsed')) {
+                    togglePanel('metadata');
+                }
+                
+                updateMetadata({
+                    status: "recording",
+                    timestamp: recordingStartTime.toISOString(),
+                    duration: 0,
+                    format: "webm",
+                    sampleRate: 48000,
+                    recording: true
+                });
+            } else {
+                // Stop recording
+                const duration = recordingStartTime ? 
+                    Math.round((new Date() - recordingStartTime) / 1000) : 0;
+                
+                button.textContent = '⏺ Record';
+                button.classList.remove('recording');
+                title.textContent = 'Ready to Record';
+                title.classList.remove('recording');
+                
+                updateMetadata({
+                    status: "idle",
+                    timestamp: recordingStartTime ? recordingStartTime.toISOString() : null,
+                    duration: duration,
+                    format: "webm",
+                    sampleRate: 48000,
+                    recording: false
+                });
+            }
+        }
+
+        function updateMetadata(data) {
+            document.getElementById('metadata-display').textContent = 
+                JSON.stringify(data, null, 2);
+        }
+
+        // Sample markdown rendering function
+        function renderMarkdown(markdownText) {
+            const htmlContent = marked.parse(markdownText);
+            document.getElementById('markdown-display').innerHTML = htmlContent;
+        }
+    </script>
+</body>
+</html>

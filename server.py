@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from whisper import load_model
 import magic
 from datetime import datetime
@@ -87,12 +87,12 @@ async def transcribe_voice_note(voice_file: UploadFile = File(...)):
 
 
 @app.get("/")
-def root():
+async def root():
     """
     GET /
     Return: HTML recording interface
     """
-    pass
+    return FileResponse("./templates/index.html")
 
 
 @app.get("/health")
@@ -101,4 +101,3 @@ def health_check():
     GET /health
     Return: JSON response with stt model status, disk space, recent file count
     """
-    pass
