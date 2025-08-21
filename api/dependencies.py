@@ -1,4 +1,4 @@
-from ..services.STT_Engine import STTEngine
+from services.STT_Engine import STTEngine
 from functools import lru_cache
 
 

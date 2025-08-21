@@ -4,6 +4,7 @@ from api.dependencies import get_engine
 from services.STT_Engine import STTEngine
 from services.file_manager import FileManager
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
 app = FastAPI(
@@ -11,6 +12,16 @@ app = FastAPI(
     version="1.0.0",
     description="A simple API for transcribing voice notes.",
 )
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 file_manager = FileManager()
 
 
@@ -25,7 +36,7 @@ async def transcribe_voice_note(
     temp_path = None
     try:
         temp_path = await file_manager.save_temp_file(voice_file)
-        transcription_text = await stt_engine.transcribe_voice_note(temp_path)
+        transcription_text = await stt_engine.transcribe(temp_path)
         ts = datetime.now().isoformat()
         md_content = file_manager.generate_markdown(transcription_text, ts)
         final_path = file_manager.save_note(md_content, ts)
