@@ -50,7 +50,7 @@ async def root():
 
 
 @app.get("/health", response_model=HealthCheckResponse)
-async def health_check(stt_engine: STTEngine = Depends(get_stt_engine)):
+async def health_check(stt_engine: STTEngine = Depends(get_engine)):
     return HealthCheckResponse(
         status="ok",
         model=stt_engine.model_id,

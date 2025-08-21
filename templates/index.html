@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recording Interface</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
     <style>
-        * {
+      * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -225,147 +225,52 @@
             text-decoration: underline;
         }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <div class="title" id="main-title">Ready to Record</div>
-            <button class="record-btn" id="record-button" onclick="toggleRecord()">
-                ⏺ Record
-            </button>
+      <div class="header">
+        <div class="title" id="main-title">Ready to Record</div>
+        <button class="record-btn" id="record-button" onclick="toggleRecord()">
+          ⏺ Record
+        </button>
+      </div>
+      <div class="content-area">
+        <div class="markdown-panel">
+          <div class="panel-header">
+            <div class="markdown-title">Content</div>
+            <button class="collapse-btn" onclick="togglePanel('markdown')">−</button>
+          </div>
+          <div class="markdown-content" id="markdown-display">
+            <h2>Recording Interface</h2>
+            <p>Dark mode interface ready for audio recording and transcription.</p>
+            <ul>
+              <li>Click Record to toggle recording state</li>
+              <li>Metadata panel shows current status</li>
+              <li>Content area will display transcribed text</li>
+            </ul>
+            <blockquote>
+              <p>Interface ready for integration with recording services.</p>
+            </blockquote>
+          </div>
         </div>
-
-        <div class="content-area">
-            <div class="markdown-panel">
-                <div class="panel-header">
-                    <div class="markdown-title">Content</div>
-                    <button class="collapse-btn" onclick="togglePanel('markdown')">−</button>
-                </div>
-                <div class="markdown-content" id="markdown-display">
-                    <h2>Recording Interface</h2>
-                    <p>Dark mode interface ready for audio recording and transcription.</p>
-                    <ul>
-                        <li>Click Record to toggle recording state</li>
-                        <li>Metadata panel shows current status</li>
-                        <li>Content area will display transcribed text</li>
-                    </ul>
-                    <blockquote>
-                        <p>Interface ready for integration with recording services.</p>
-                    </blockquote>
-                </div>
-            </div>
-
-            <div class="metadata-panel collapsed" id="metadata-panel">
-                <div class="panel-header">
-                    <div class="metadata-title">Metadata</div>
-                    <button class="collapse-btn" onclick="togglePanel('metadata')">+</button>
-                </div>
-                <div class="metadata-content" id="metadata-display">
-{
-  "status": "idle",
-  "timestamp": null,
-  "duration": 0,
-  "format": "webm",
-  "sampleRate": 48000,
-  "recording": false
-}
-                </div>
-            </div>
+        <div class="metadata-panel collapsed" id="metadata-panel">
+          <div class="panel-header">
+            <div class="metadata-title">Metadata</div>
+            <button class="collapse-btn" onclick="togglePanel('metadata')">+</button>
+          </div>
+          <div class="metadata-content" id="metadata-display">
+            {
+                    "status": "idle",
+                    "timestamp": null,
+                    "duration": 0,
+                    "format": "webm",
+                    "sampleRate": 48000,
+                    "recording": false
+                    }
+          </div>
         </div>
+      </div>
     </div>
-
-    <script>
-        let isRecording = false;
-        let recordingStartTime = null;
-
-        function togglePanel(panelType) {
-            if (panelType === 'metadata') {
-                const panel = document.getElementById('metadata-panel');
-                const btn = panel.querySelector('.collapse-btn');
-                
-                if (panel.classList.contains('collapsed')) {
-                    panel.classList.remove('collapsed');
-                    btn.textContent = '−';
-                } else {
-                    panel.classList.add('collapsed');
-                    btn.textContent = '+';
-                }
-            } else if (panelType === 'markdown') {
-                const panel = document.querySelector('.markdown-panel');
-                const content = panel.querySelector('.markdown-content');
-                const btn = panel.querySelector('.collapse-btn');
-                
-                if (content.style.display === 'none') {
-                    content.style.display = 'block';
-                    btn.textContent = '−';
-                    panel.style.flex = '1';
-                } else {
-                    content.style.display = 'none';
-                    btn.textContent = '+';
-                    panel.style.flex = '0 0 auto';
-                }
-            }
-        }
-
-        function toggleRecord() {
-            const button = document.getElementById('record-button');
-            const title = document.getElementById('main-title');
-            const metadataPanel = document.getElementById('metadata-panel');
-            
-            isRecording = !isRecording;
-            
-            if (isRecording) {
-                // Start recording
-                recordingStartTime = new Date();
-                button.textContent = '⏹ Recording';
-                button.classList.add('recording');
-                title.textContent = 'Recording...';
-                title.classList.add('recording');
-                
-                // Open metadata panel when recording starts
-                if (metadataPanel.classList.contains('collapsed')) {
-                    togglePanel('metadata');
-                }
-                
-                updateMetadata({
-                    status: "recording",
-                    timestamp: recordingStartTime.toISOString(),
-                    duration: 0,
-                    format: "webm",
-                    sampleRate: 48000,
-                    recording: true
-                });
-            } else {
-                // Stop recording
-                const duration = recordingStartTime ? 
-                    Math.round((new Date() - recordingStartTime) / 1000) : 0;
-                
-                button.textContent = '⏺ Record';
-                button.classList.remove('recording');
-                title.textContent = 'Ready to Record';
-                title.classList.remove('recording');
-                
-                updateMetadata({
-                    status: "idle",
-                    timestamp: recordingStartTime ? recordingStartTime.toISOString() : null,
-                    duration: duration,
-                    format: "webm",
-                    sampleRate: 48000,
-                    recording: false
-                });
-            }
-        }
-
-        function updateMetadata(data) {
-            document.getElementById('metadata-display').textContent = 
-                JSON.stringify(data, null, 2);
-        }
-
-        // Sample markdown rendering function
-        function renderMarkdown(markdownText) {
-            const htmlContent = marked.parse(markdownText);
-            document.getElementById('markdown-display').innerHTML = htmlContent;
-        }
-    </script>
-</body>
+    <script></script>
+  </body>
 </html>
