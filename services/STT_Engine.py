@@ -6,6 +6,7 @@ class STTEngine:
     def __init__(self, model_name: str = "base"):
         self.loop = asyncio.get_event_loop()
         self.model = whisper.load_model(model_name, device="cpu")
+        self.model_id = model_name
 
     async def transcribe(self, path: str):  # TODO: add Path supp
         return await self.loop.run_in_executor(

@@ -1,7 +1,7 @@
 from ..services.STT_Engine import STTEngine
+from functools import lru_cache
 
-engine: STTEngine = STTEngine()
 
-
+@lru_cache(maxsize=1)
 def get_engine() -> STTEngine:
-    return engine
+    return STTEngine()
