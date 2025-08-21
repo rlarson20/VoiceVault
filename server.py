@@ -74,6 +74,7 @@ async def transcribe_voice_note(voice_file: UploadFile = File(...)):
         )
     model = load_model("base", device="cpu")  # Load the Whisper model
     result = model.transcribe(note, language="en", fp16=False)
+    text: str = result["text"]
     # step 5: generate markdown content with metadata about transcription
     # skipped for now, just return text
     # step 6: send JSON response with transcription text and metadata
@@ -81,7 +82,7 @@ async def transcribe_voice_note(voice_file: UploadFile = File(...)):
         content={
             "message": "Note transcribed successfully",
             "received_at": ts,
-            "text": result["text"],
+            "text": text.strip(),
         }
     )
 
