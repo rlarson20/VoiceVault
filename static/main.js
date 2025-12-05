@@ -1,3 +1,5 @@
+import { marked } from "marked";
+
 let isRecording = false;
 let recordingStartTime = null;
 
