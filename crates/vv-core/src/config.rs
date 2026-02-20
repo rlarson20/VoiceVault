@@ -34,7 +34,7 @@ pub struct VaultConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct SttConfig {
-    /// Whisper model name (tiny, base, small, medium, large)
+    /// Whisper model name (tiny, tiny.en, base, base.en, small, small.en, medium, medium.en, large, large-v3)
     pub model: String,
 }
 
@@ -112,7 +112,7 @@ fn default_filename_format() -> String {
 
 /// Default Whisper model
 fn default_model() -> String {
-    String::from("base")
+    String::from("tiny.en")
 }
 
 /// Default vault path (~/Documents/Vault or ~/Documents)
@@ -127,9 +127,10 @@ pub struct ConfigLoader;
 impl ConfigLoader {
     /// Load configuration from multiple sources in priority order:
     /// 1. CLI-provided path
-    /// 2. VOICEVAULT_CONFIG environment variable
+    /// 2. `VOICEVAULT_CONFIG` environment variable
     /// 3. XDG config directory
-    /// 4. Return error if not found
+    /// # Errors
+    /// Return error if not found
     pub fn load(cli_path: Option<PathBuf>) -> VvResult<Config> {
         let config_path = Self::find_config_path(cli_path)?;
 
@@ -183,6 +184,8 @@ impl ConfigLoader {
     }
 
     /// Validate configuration values
+    /// # Errors
+    /// Vault not found
     pub fn validate(config: &Config) -> VvResult<()> {
         // Validate vault path
         if !config.vault.path.exists() {
@@ -197,7 +200,18 @@ impl ConfigLoader {
         }
 
         // Validate model name
-        let valid_models = ["tiny", "base", "small", "medium", "large"];
+        let valid_models = [
+            "tiny",
+            "tiny.en",
+            "base",
+            "base.en",
+            "small",
+            "small.en",
+            "medium",
+            "medium.en",
+            "large",
+            "large-v3",
+        ];
         if !valid_models.contains(&config.stt.model.as_str()) {
             return Err(VvError::UnknownModel(config.stt.model.clone()));
         }

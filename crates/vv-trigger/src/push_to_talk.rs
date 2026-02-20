@@ -8,7 +8,8 @@ use std::io::{self, Write};
 pub struct PushToTalk;
 
 impl PushToTalk {
-    /// Create a new PushToTalk trigger.
+    /// Create a new `PushToTalk` trigger.
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -30,7 +31,7 @@ impl Trigger for PushToTalk {
         let mut line = String::new();
         io::stdin()
             .read_line(&mut line)
-            .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {}", e)))?;
+            .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {e}")))?;
         Ok(())
     }
 
@@ -42,7 +43,7 @@ impl Trigger for PushToTalk {
         let mut line = String::new();
         io::stdin()
             .read_line(&mut line)
-            .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {}", e)))?;
+            .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {e}")))?;
         Ok(())
     }
 }

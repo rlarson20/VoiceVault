@@ -223,8 +223,6 @@ mod tests {
 
     #[test]
     fn test_samples_to_wav_roundtrip() {
-        use std::io::Read;
-
         let samples = vec![0.0, 0.5, 1.0, -0.5, -1.0];
         let temp_file = tempfile::NamedTempFile::new().unwrap();
 

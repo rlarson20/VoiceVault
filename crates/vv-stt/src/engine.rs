@@ -32,8 +32,10 @@ pub struct WhisperEngine {
 }
 
 impl WhisperEngine {
-    /// Load a Whisper model from HuggingFace Hub
+    /// Load a Whisper model from `HuggingFace` Hub
     /// Downloads and caches the model on first run
+    /// # Errors
+    /// Unknown model
     pub fn load(model_id: &str, device: &Device, _hf_endpoint: Option<&str>) -> VvResult<Self> {
         info!("Loading Whisper model: {}", model_id);
 
@@ -101,10 +103,7 @@ impl WhisperEngine {
 
         // Verify model and tokenizer compatibility
         info!("Model vocab_size: {}", config.vocab_size);
-        info!(
-            "Tokenizer vocab_size: {}",
-            tokenizer.get_vocab_size(true)
-        );
+        info!("Tokenizer vocab_size: {}", tokenizer.get_vocab_size(true));
         info!(
             "Model max_target_positions: {}",
             config.max_target_positions
@@ -122,11 +121,8 @@ impl WhisperEngine {
                 Some(id) => debug!("Token '{}' -> id {}", token_name, id),
                 None => {
                     use tracing::warn;
-                    warn!(
-                        "WARNING: Token '{}' not found in tokenizer!",
-                        token_name
-                    )
-                }
+                    warn!("WARNING: Token '{}' not found in tokenizer!", token_name)
+                },
             }
         }
 
@@ -192,27 +188,24 @@ impl WhisperEngine {
                     "Token {}: id='{}' text='{}'",
                     i,
                     token_id,
-                    token.replace('Ġ', " ").replace('\n', "\\n").replace('\r', "\\r")
+                    token
+                        .replace('Ġ', " ")
+                        .replace('\n', "\\n")
+                        .replace('\r', "\\r")
                 );
             } else {
-                warn!(
-                    "Token {}: id='{}' has no mapping in tokenizer",
-                    i, token_id
-                );
+                warn!("Token {}: id='{}' has no mapping in tokenizer", i, token_id);
             }
         }
 
         // Decode tokens to text
-        let text = self
-            .tokenizer
-            .decode(&tokens, true)
-            .map_err(|e| {
-                VvError::Transcription(format!(
-                    "Tokenization failed: {} (first 10 tokens: {:?})",
-                    e,
-                    &tokens[..tokens.len().min(10)]
-                ))
-            })?;
+        let text = self.tokenizer.decode(&tokens, true).map_err(|e| {
+            VvError::Transcription(format!(
+                "Tokenization failed: {} (first 10 tokens: {:?})",
+                e,
+                &tokens[..tokens.len().min(10)]
+            ))
+        })?;
 
         debug!(
             "Decoded text ({} chars): {}",
@@ -370,7 +363,10 @@ impl WhisperEngine {
                 debug!("Added language token <|en|> for multilingual model");
             }
         } else {
-            debug!("Skipping language token for English-only model ({})", self.model_id);
+            debug!(
+                "Skipping language token for English-only model ({})",
+                self.model_id
+            );
         }
 
         for i in 0..max_iterations {
@@ -406,15 +402,17 @@ impl WhisperEngine {
             })?;
 
             // The decoder returns hidden states - must project to logits via final_linear
-            let hidden_states = decoder_output
-                .i((..1, seq_len - 1..))
-                .map_err(|e| VvError::Transcription(format!("Failed to slice hidden states: {}", e)))?;
+            let hidden_states = decoder_output.i((..1, seq_len - 1..)).map_err(|e| {
+                VvError::Transcription(format!("Failed to slice hidden states: {}", e))
+            })?;
 
             let logits = self
                 .model
                 .decoder
                 .final_linear(&hidden_states)
-                .map_err(|e| VvError::Transcription(format!("Failed to apply final linear layer: {}", e)))?
+                .map_err(|e| {
+                    VvError::Transcription(format!("Failed to apply final linear layer: {}", e))
+                })?
                 .i(0)
                 .map_err(|e| VvError::Transcription(format!("Failed to remove batch dim: {}", e)))?
                 .i(0)

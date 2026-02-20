@@ -31,13 +31,13 @@ pub struct VaultWriter {
 }
 
 impl VaultWriter {
-    /// Creates a new VaultWriter from a VaultConfig
+    /// Creates a new `VaultWriter` from a `VaultConfig`
     ///
     /// # Arguments
     /// * `config` - Vault configuration containing path, folder, and filename format
     ///
     /// # Returns
-    /// A Result containing the VaultWriter or a VvError
+    /// A Result containing the `VaultWriter` or a `VvError`
     ///
     /// # Examples
     ///
