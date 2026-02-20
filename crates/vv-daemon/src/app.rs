@@ -1,8 +1,10 @@
 use crate::cli::Args;
 use anyhow::Result;
+use candle_core::Device;
 use chrono::Local;
 use std::path::PathBuf;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::signal::ctrl_c;
 use tokio::sync::oneshot;
@@ -53,22 +55,24 @@ impl App {
         info!("Model: {}", config.stt.model);
 
         // Initialize STT engine (use CPU for MVP, Metal support later)
-        let device = "cpu"; // MVP: always use CPU
-        info!("Using device: {}", device);
+        let device = Device::Cpu; // MVP: always use CPU
+        info!("Using device: {:?}", device);
 
         info!("Loading Whisper model...");
-        let stt_engine = thread::spawn(move || {
-            // Use empty string for hf_endpoint in MVP
-            WhisperEngine::load(&config.stt.model, device, "")
-        })
-        .join()
-        .map_err(|e| VvError::Transcription(format!("Failed to join loading thread: {:?}", e)))??;
+        let stt_engine = Arc::new(Mutex::new(
+            thread::spawn(move || {
+                // Use empty string for hf_endpoint in MVP
+                WhisperEngine::load(&config.stt.model, &device, "")
+            })
+            .join()
+            .map_err(|e| VvError::Transcription(format!("Failed to join loading thread: {:?}", e)))??,
+        ));
 
         // Initialize audio capture
         let audio_capture = AudioCapture::new()?;
 
         // Initialize vault writer
-        let vault_writer = VaultWriter::new(&config.vault)?;
+        let vault_writer = Arc::new(Mutex::new(VaultWriter::new(&config.vault)?));
 
         // Build trigger - for MVP, only PushToTalk
         let trigger = PushToTalk::new();
@@ -77,7 +81,7 @@ impl App {
         info!("VoiceVault ready");
 
         // Set up signal handling
-        Self::main_loop(audio_capture, &stt_engine, &vault_writer, trigger).await?;
+        Self::main_loop(audio_capture, stt_engine, vault_writer, trigger).await?;
 
         info!("VoiceVault exited cleanly");
         Ok(())
@@ -99,8 +103,8 @@ impl App {
     /// Main application loop
     async fn main_loop(
         _audio_capture: AudioCapture,
-        stt_engine: &WhisperEngine,
-        vault_writer: &VaultWriter,
+        stt_engine: Arc<Mutex<WhisperEngine>>,
+        vault_writer: Arc<Mutex<VaultWriter>>,
         trigger: PushToTalk,
     ) -> Result<()> {
         loop {
@@ -173,9 +177,10 @@ impl App {
                     // Transcribe
                     info!("Transcribing...");
                     let temp_wav_clone = temp_wav.clone();
-                    let stt_engine = stt_engine.clone();
+                    let stt_engine_clone = Arc::clone(&stt_engine);
                     let transcription_result = thread::spawn(move || {
-                        stt_engine.transcribe(&temp_wav_clone)
+                        let engine = stt_engine_clone.lock().unwrap();
+                        engine.transcribe(&temp_wav_clone)
                     }).join();
 
                     let text = match transcription_result {
@@ -204,7 +209,8 @@ impl App {
                     );
 
                     // Write to vault
-                    match vault_writer.write(&note) {
+                    let vault_writer_clone = Arc::clone(&vault_writer);
+                    match vault_writer_clone.lock().unwrap().write(&note) {
                         Ok(path) => {
                             info!("Saved note to: {}", path.display());
                         }
