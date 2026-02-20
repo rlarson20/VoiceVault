@@ -1,0 +1,20 @@
+[package]
+name = "vv-capture"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Audio capture
+cpal = "0.16"
+hound = "3.5"
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
