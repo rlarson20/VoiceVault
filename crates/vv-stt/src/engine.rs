@@ -1,66 +1,83 @@
+use candle_core::Device;
 use std::path::Path;
-use vv_core::VvResult;
+use tracing::info;
+use vv_core::{VvError, VvResult};
 
-/// Whisper speech-to-text engine
-///
-/// TODO: This is a minimal stub for MVP. Will be implemented with Candle in Task 11.
-#[derive(Debug, Clone)]
-pub struct WhisperEngine {
-    _model_name: String,
+/// Task type for Whisper model
+pub enum Task {
+    Transcribe,
+    Translate,
 }
 
 /// Configuration for decoding/transcription
-#[derive(Debug, Clone)]
 pub struct DecodingConfig {
-    /// Language code (e.g., "en", "es"), or None for auto-detect
     pub language: Option<String>,
-    /// Task: "transcribe" or "translate"
-    pub task: String,
+    pub task: Task,
 }
 
-impl Default for DecodingConfig {
-    fn default() -> Self {
-        Self {
-            language: None,
-            task: "transcribe".to_string(),
-        }
-    }
+/// Whisper speech-to-text engine
+///
+/// TODO: This is a skeleton. Full implementation will be added in Task 11.
+pub struct WhisperEngine {
+    // TODO: Add actual model fields when implementing:
+    // - model: whisper::model::Whisper
+    // - tokenizer: Tokenizer
+    // - config: DecodingConfig
+    // - device: Device
+    // - mel_filters: Vec<f32>
+    _model_name: String,
 }
 
 impl WhisperEngine {
-    /// Load a Whisper model
-    ///
-    /// TODO: Will actually load Candle model in Task 11
-    pub fn load(_model_name: &str, _device: &str, _hf_endpoint: &str) -> VvResult<Self> {
-        // For now, just create a stub engine
-        // In the full implementation, this will:
-        // 1. Download model if needed from HuggingFace
-        // 2. Load it into the specified device (CPU/Metal)
-        // 3. Prepare it for inference
+    /// Load a Whisper model from HuggingFace Hub
+    /// Downloads and caches the model on first run
+    pub fn load(
+        model_id: &str,
+        _device: &Device,
+        _hf_endpoint: &str,
+    ) -> VvResult<Self> {
+        info!("Loading Whisper model: {}", model_id);
+
+        // Map model name to HF repo (placeholder for actual implementation)
+        match model_id {
+            "tiny.en" | "base.en" | "small.en" | "medium.en" | "large-v3" => {
+                // Valid model IDs
+            }
+            _ => return Err(VvError::UnknownModel(model_id.to_string())),
+        };
+
+        // TODO: Actual implementation will:
+        // 1. Set up HF API with custom endpoint if provided
+        // 2. Download/cached model weights
+        // 3. Load tokenizer
+        // 4. Load model weights
+        // 5. Load mel filters
+        // 6. Return initialized WhisperEngine
 
         Ok(Self {
-            _model_name: _model_name.to_string(),
+            _model_name: model_id.to_string(),
         })
     }
 
-    /// Transcribe an audio file
-    ///
-    /// TODO: Will actually run Whisper inference in Task 11
-    pub fn transcribe(&self, _audio_path: &Path) -> VvResult<String> {
-        // For now, return placeholder text
-        // In the full implementation, this will:
-        // 1. Load the WAV file
-        // 2. Preprocess audio (log-mel spectrogram)
-        // 3. Run Whisper model
-        // 4. Decode tokens to text
-        // 5. Return transcription
+    /// Transcribe a WAV audio file
+    /// Runs in a blocking thread (candle is sync), so use with tokio::task::spawn_blocking
+    pub fn transcribe(&self, wav_path: &Path) -> VvResult<String> {
+        info!("Transcribing: {:?}", wav_path);
 
-        Ok("[Transcription placeholder - WhisperEngine not yet implemented]".to_string())
+        // TODO: Actual implementation will:
+        // 1. Read WAV file
+        // 2. Convert to mel spectrogram
+        // 3. Run Whisper model encoder
+        // 4. Decode using greedy sampling
+        // 5. Decode tokens to text
+
+        todo!("Implement Whisper transcription")
     }
 
     /// Transcribe with custom decoding config
-    pub fn transcribe_with_config(&self, _audio_path: &Path, _config: &DecodingConfig) -> VvResult<String> {
+    pub fn transcribe_with_config(&self, wav_path: &Path, _config: &DecodingConfig) -> VvResult<String> {
         // For now, just call the basic transcribe
-        self.transcribe(_audio_path)
+        // TODO: In full implementation, apply custom config
+        self.transcribe(wav_path)
     }
 }
