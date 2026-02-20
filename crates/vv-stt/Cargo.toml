@@ -1,0 +1,28 @@
+[package]
+name = "vv-stt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Candle ML framework
+candle-core = "0.8"
+candle-transformers = "0.8"
+candle-nn = "0.8"
+
+# Tokenization
+tokenizers = "0.20"
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+[features]
+metal = ["candle-core/metal", "candle-transformers/metal", "candle-nn/metal"]

@@ -3,6 +3,7 @@ members = [
     "crates/vv-core",
     "crates/vv-vault",
     "crates/vv-capture",
+    "crates/vv-stt",
 ]
 resolver = "2"
 
