@@ -25,4 +25,8 @@ pub struct Args {
     /// Verbosity level (-v, -vv, -vvv)
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
+
+    /// Transcribe a single audio file and exit (skips daemon mode)
+    #[arg(long, value_name = "FILE")]
+    pub transcribe_only: Option<PathBuf>,
 }

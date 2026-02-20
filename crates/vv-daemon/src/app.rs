@@ -2,15 +2,15 @@ use crate::cli::Args;
 use anyhow::Result;
 use candle_core::Device;
 use chrono::Local;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::signal::ctrl_c;
 use tokio::sync::oneshot;
 use tracing::{debug, error, info, warn};
-use vv_core::{Config, ConfigLoader, Note, TriggerKind, VvError};
 use vv_capture::AudioCapture;
+use vv_core::{Config, ConfigLoader, Note, TriggerKind, VvError};
 use vv_stt::WhisperEngine;
 use vv_trigger::Trigger;
 use vv_vault::VaultWriter;
@@ -31,7 +31,14 @@ impl App {
 
     /// Run the main application loop
     pub async fn run(&self) -> Result<()> {
-        info!("Starting VoiceVault daemon");
+        info!("Starting VoiceVault");
+
+        // Handle transcribe-only mode
+        if let Some(audio_path) = &self.args.transcribe_only {
+            return self.run_transcribe_only(audio_path).await;
+        }
+
+        info!("Starting daemon mode");
 
         // Load configuration
         let mut config = Self::load_config(&self.args)?;
@@ -61,11 +68,13 @@ impl App {
         info!("Loading Whisper model...");
         let stt_engine = Arc::new(Mutex::new(
             thread::spawn(move || {
-                // Use empty string for hf_endpoint in MVP
-                WhisperEngine::load(&config.stt.model, &device, "")
+                // Use None for hf_endpoint in MVP
+                WhisperEngine::load(&config.stt.model, &device, None)
             })
             .join()
-            .map_err(|e| VvError::Transcription(format!("Failed to join loading thread: {:?}", e)))??,
+            .map_err(|e| {
+                VvError::Transcription(format!("Failed to join loading thread: {:?}", e))
+            })??,
         ));
 
         // Initialize audio capture
@@ -95,9 +104,53 @@ impl App {
             Err(VvError::Config(_)) | Err(VvError::ConfigNotFound(_)) => {
                 warn!("No config file found, using defaults");
                 Ok(Config::default())
-            }
+            },
             Err(e) => Err(e),
         }
+    }
+
+    /// Run in transcribe-only mode: load model, transcribe file, print result, exit
+    async fn run_transcribe_only(&self, audio_path: &Path) -> Result<()> {
+        info!("Transcribe-only mode: {}", audio_path.display());
+
+        // Verify audio file exists
+        if !audio_path.exists() {
+            return Err(VvError::Transcription(format!(
+                "Audio file not found: {}",
+                audio_path.display()
+            ))
+            .into());
+        }
+
+        // Load minimal config for model selection
+        let config = Self::load_config(&self.args)?;
+        let model = self
+            .args
+            .model
+            .clone()
+            .unwrap_or_else(|| config.stt.model.clone());
+
+        info!("Using model: {}", model);
+
+        // Initialize STT engine
+        let device = Device::Cpu;
+        info!("Loading Whisper model...");
+
+        let mut stt_engine = thread::spawn(move || WhisperEngine::load(&model, &device, None))
+            .join()
+            .map_err(|e| anyhow::anyhow!("Failed to join loading thread: {:?}", e))??;
+
+        // Transcribe
+        info!("Transcribing: {}", audio_path.display());
+        let text = stt_engine.transcribe(audio_path)?;
+
+        // Print result
+        println!();
+        println!("{}", text);
+        println!();
+
+        info!("Transcription complete");
+        Ok(())
     }
 
     /// Main application loop
@@ -141,10 +194,8 @@ impl App {
                             let _ = stop_tx.send(());
 
                             // Wait for capture thread to finish
-                            if let Ok(capture_result) = capture_result.join() {
-                                if let Err(e) = capture_result {
-                                    warn!("Capture thread ended with error: {}", e);
-                                }
+                            if let Ok(Err(e)) = capture_result.join() {
+                                warn!("Capture thread ended with error: {}", e);
                             }
                         }
                         Err(e) => {
@@ -179,7 +230,7 @@ impl App {
                     let temp_wav_clone = temp_wav.clone();
                     let stt_engine_clone = Arc::clone(&stt_engine);
                     let transcription_result = thread::spawn(move || {
-                        let engine = stt_engine_clone.lock().unwrap();
+                        let mut engine = stt_engine_clone.lock().unwrap();
                         engine.transcribe(&temp_wav_clone)
                     }).join();
 
