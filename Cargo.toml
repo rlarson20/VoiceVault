@@ -1,11 +1,6 @@
 [workspace]
 members = [
     "crates/vv-core",
-    "crates/vv-capture",
-    "crates/vv-stt",
-    "crates/vv-trigger",
-    "crates/vv-vault",
-    "crates/vv-daemon",
 ]
 resolver = "2"
 
@@ -33,7 +28,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Time
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 
 # Internal crates
 vv-core = { path = "crates/vv-core" }

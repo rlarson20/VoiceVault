@@ -36,4 +36,4 @@ pub enum VvError {
     UnknownModel(String),
 }
 
-pub type VvResult<T> = Result<T, VvError>;
+pub type VvResult<T> = std::result::Result<T, VvError>;

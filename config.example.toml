@@ -1,0 +1,65 @@
+# VoiceVault Configuration Example
+#
+# Copy this file to:
+# - ~/.config/voicevault/config.toml (Linux/macOS)
+# - %APPDATA%\voicevault\config.toml (Windows)
+#
+# Or specify via:
+# - CLI: voicevault --config path/to/config.toml
+# - Environment: VOICEVAULT_CONFIG=path/to/config.toml
+
+##########################################
+# Vault Settings
+##########################################
+[vault]
+# Path to your Obsidian vault or notes directory
+path = "~/Documents/Vault"
+
+# Folder within vault where recordings are stored
+folder = "voice-notes"
+
+##########################################
+# Speech-to-Text Settings
+##########################################
+[stt]
+# Whisper model to use
+# Options: tiny, base, small, medium, large
+# - tiny: fastest, least accurate
+# - base: good balance of speed and accuracy (recommended)
+# - small: better accuracy, slower
+# - medium: high accuracy, slow
+# - large: best accuracy, slowest
+model = "base"
+
+##########################################
+# Trigger Settings
+##########################################
+[trigger]
+# Push-to-talk mode (press a key to start/stop recording)
+push_to_talk = true
+
+# Key combination for push-to-talk
+# Uses your system's key notation (e.g., Ctrl+Shift+V, Cmd+Shift+V)
+push_key = "Ctrl+Shift+V"
+
+# Continuous listening mode (always listening for keyword)
+continuous = false
+
+# Voice activation keyword (when continuous=true)
+# The system will start recording when it detects this word
+keyword = "hey vault"
+
+# Note: Both push_to_talk and continuous can be enabled simultaneously
+# but it's recommended to use one or the other
+
+##########################################
+# Audio Settings
+##########################################
+[audio]
+# Sample rate in Hz
+# Standard rates: 8000, 16000 (Whisper default), 44100, 48000
+sample_rate = 16000
+
+# Number of audio channels
+# 1 = mono, 2 = stereo
+channels = 1

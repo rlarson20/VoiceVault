@@ -10,3 +10,4 @@ wheels/
 docs/*
 # Virtual environments
 .venv
+target/
