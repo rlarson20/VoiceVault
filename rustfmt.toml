@@ -1,0 +1,27 @@
+# Maximum width of each line
+max_width = 100
+
+# Hard tabs or spaces
+hard_tabs = false
+tab_spaces = 4
+
+# Edition-specific formatting
+edition = "2024"
+
+# Use field init shorthand if possible
+use_field_init_shorthand = true
+
+# Use try shorthand
+use_try_shorthand = true
+
+# Match block trailing comma
+match_block_trailing_comma = true
+
+# Use small heuristics
+use_small_heuristics = "Default"
+
+# Remove nested parens
+remove_nested_parens = true
+
+# Merge derives
+merge_derives = true
