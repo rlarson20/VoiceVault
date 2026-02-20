@@ -1,0 +1,29 @@
+[package]
+name = "vv-daemon"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "vv-daemon"
+path = "src/main.rs"
+
+[dependencies]
+# CLI parsing
+clap = { version = "4.5", features = ["derive"] }
+
+# Async runtime
+tokio.workspace = true
+
+# Error handling
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Internal crates
+vv-core.workspace = true
+vv-vault.workspace = true
+vv-capture.workspace = true
+vv-stt.workspace = true
+vv-trigger.workspace = true

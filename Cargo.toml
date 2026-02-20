@@ -5,6 +5,7 @@ members = [
     "crates/vv-capture",
     "crates/vv-stt",
     "crates/vv-trigger",
+    "crates/vv-daemon",
 ]
 resolver = "2"
 
@@ -36,3 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Internal crates
 vv-core = { path = "crates/vv-core" }
+vv-vault = { path = "crates/vv-vault" }
+vv-capture = { path = "crates/vv-capture" }
+vv-stt = { path = "crates/vv-stt" }
+vv-trigger = { path = "crates/vv-trigger" }
