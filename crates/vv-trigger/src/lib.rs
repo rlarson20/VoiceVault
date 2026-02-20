@@ -4,3 +4,6 @@ pub mod r#trait;
 pub mod push_to_talk;
 
 pub use r#trait::Trigger;
+
+// Re-export error types from vv-core
+pub use vv_core::{VvResult, VvError};

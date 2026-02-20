@@ -1,11 +1,12 @@
 use async_trait::async_trait;
+use crate::VvResult;
 
 /// Trait for determining when to start/stop recording.
 #[async_trait]
 pub trait Trigger: Send + Sync {
-    /// Returns true when recording should start.
-    async fn should_start(&self) -> bool;
+    /// Wait until recording should start.
+    async fn wait_for_start(&self) -> VvResult<()>;
 
-    /// Returns true when recording should stop.
-    async fn should_stop(&self) -> bool;
+    /// Wait until recording should stop.
+    async fn wait_for_stop(&self) -> VvResult<()>;
 }
