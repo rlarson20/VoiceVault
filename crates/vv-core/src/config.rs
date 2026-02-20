@@ -26,6 +26,8 @@ pub struct VaultConfig {
     pub path: PathBuf,
     /// Folder name within vault for recordings
     pub folder: String,
+    /// Filename format (strftime-compatible, e.g., "%Y-%m-%dT%H-%M-%S")
+    pub filename_format: String,
 }
 
 /// Speech-to-text configuration
@@ -76,6 +78,7 @@ impl Default for VaultConfig {
         Self {
             path: default_vault_path(),
             folder: default_folder(),
+            filename_format: default_filename_format(),
         }
     }
 }
@@ -111,6 +114,11 @@ impl Default for AudioConfig {
 /// Default folder name for recordings
 fn default_folder() -> String {
     String::from("voice-notes")
+}
+
+/// Default filename format (ISO 8601-like timestamp)
+fn default_filename_format() -> String {
+    String::from("%Y-%m-%dT%H-%M-%S")
 }
 
 /// Default Whisper model
