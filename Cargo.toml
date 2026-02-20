@@ -4,6 +4,7 @@ members = [
     "crates/vv-vault",
     "crates/vv-capture",
     "crates/vv-stt",
+    "crates/vv-trigger",
 ]
 resolver = "2"
 
