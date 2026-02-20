@@ -7,7 +7,6 @@ use tracing::{debug, error, info};
 use vv_core::VvResult;
 
 const WHISPER_SAMPLE_RATE: u32 = 16000;
-const WHISPER_CHANNELS: u16 = 1;
 
 #[derive(Debug, Error)]
 pub enum CaptureError {
@@ -42,11 +41,12 @@ impl AudioCapture {
     /// Create a new audio capture instance using the default input device
     pub fn new() -> VvResult<Self> {
         let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .ok_or(CaptureError::NoDevice)?;
+        let device = host.default_input_device().ok_or(CaptureError::NoDevice)?;
 
-        info!("Using audio device: {}", device.name().unwrap_or_else(|_| "Unknown".to_string()));
+        info!(
+            "Using audio device: {}",
+            device.name().unwrap_or_else(|_| "Unknown".to_string())
+        );
 
         let config = device
             .default_input_config()
@@ -60,11 +60,7 @@ impl AudioCapture {
     /// Start recording audio
     /// Sends f32 mono 16kHz samples via the channel
     /// Stops when the stop receiver is signaled
-    pub fn record(
-        &self,
-        tx: Sender<Vec<f32>>,
-        stop: oneshot::Receiver<()>,
-    ) -> VvResult<()> {
+    pub fn record(&self, tx: Sender<Vec<f32>>, stop: oneshot::Receiver<()>) -> VvResult<()> {
         let sample_format = self.config.sample_format();
 
         let sample_rate = self.config.config().sample_rate.0;
@@ -72,14 +68,21 @@ impl AudioCapture {
 
         // Build the audio stream based on the device's sample format
         let stream = match sample_format {
-            SampleFormat::F32 => self.build_stream::<f32>(tx.clone(), stop, sample_rate, channels)?,
-            SampleFormat::I16 => self.build_stream::<i16>(tx.clone(), stop, sample_rate, channels)?,
-            SampleFormat::U16 => self.build_stream::<u16>(tx.clone(), stop, sample_rate, channels)?,
+            SampleFormat::F32 => {
+                self.build_stream::<f32>(tx.clone(), stop, sample_rate, channels)?
+            },
+            SampleFormat::I16 => {
+                self.build_stream::<i16>(tx.clone(), stop, sample_rate, channels)?
+            },
+            SampleFormat::U16 => {
+                self.build_stream::<u16>(tx.clone(), stop, sample_rate, channels)?
+            },
             _ => return Err(CaptureError::UnsupportedFormat(sample_format).into()),
         };
 
         // Start the stream
-        stream.play()
+        stream
+            .play()
             .map_err(|e| CaptureError::PlayStream(e.to_string()))?;
 
         // Keep the stream alive until stop signal
@@ -112,8 +115,8 @@ impl AudioCapture {
                 Ok(_) | Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
                     // Stop signal received, don't send more data
                     return;
-                }
-                Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {}
+                },
+                Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {},
             }
 
             // Convert to f32 and resample if needed
@@ -187,11 +190,13 @@ pub fn samples_to_wav(samples: &[f32], path: &std::path::Path) -> VvResult<()> {
         // Clamp to [-1.0, 1.0] and convert to i16
         let clamped = sample.clamp(-1.0, 1.0);
         let i16_sample = (clamped * i16::MAX as f32) as i16;
-        writer.write_sample(i16_sample)
-            .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to write sample: {}", e)))?;
+        writer.write_sample(i16_sample).map_err(|e| {
+            vv_core::VvError::AudioCapture(format!("Failed to write sample: {}", e))
+        })?;
     }
 
-    writer.finalize()
+    writer
+        .finalize()
         .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to finalize WAV: {}", e)))?;
 
     Ok(())

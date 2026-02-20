@@ -9,4 +9,4 @@ pub use push_to_talk::PushToTalk;
 pub use r#trait::Trigger;
 
 // Re-export error types from vv-core
-pub use vv_core::{VvResult, VvError};
+pub use vv_core::{VvError, VvResult};

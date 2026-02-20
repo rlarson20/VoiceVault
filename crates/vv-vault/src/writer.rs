@@ -1,7 +1,9 @@
-use std::path::{Path, PathBuf};
-use vv_core::{Note, VaultConfig, VvError, VvResult};
-use chrono::Local;
+use std::path::PathBuf;
 use tracing::{debug, info};
+use vv_core::{Note, VaultConfig, VvError, VvResult};
+
+#[cfg(test)]
+use chrono::Local;
 
 /// Writes transcribed notes to an Obsidian vault
 ///
@@ -98,10 +100,7 @@ impl VaultWriter {
         debug!("Target directory ensured: {}", target_dir.display());
 
         // Generate filename using the configured format
-        let filename = note
-            .recorded_at
-            .format(&self.filename_format)
-            .to_string();
+        let filename = note.recorded_at.format(&self.filename_format).to_string();
         let file_path = target_dir.join(format!("{}.md", filename));
         let temp_path = target_dir.join(format!("{}.md.tmp", filename));
 
@@ -140,8 +139,8 @@ impl VaultWriter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vv_core::TriggerKind;
     use tempfile::TempDir;
+    use vv_core::TriggerKind;
 
     #[test]
     fn test_vault_writer_creates_folder() {
@@ -213,8 +212,7 @@ mod tests {
         assert!(!temp_path.exists(), "Temporary file should be cleaned up");
 
         // Verify the content is correct
-        let content = std::fs::read_to_string(&file_path)
-            .expect("Failed to read written file");
+        let content = std::fs::read_to_string(&file_path).expect("Failed to read written file");
         assert!(content.contains("Atomic write test content"));
         assert!(content.contains("---"));
         assert!(content.contains("trigger: Push-to-Talk"));
@@ -237,10 +235,7 @@ mod tests {
         assert!(result.is_err(), "Should fail with non-existent vault path");
 
         if let Err(VvError::VaultNotFound(path)) = result {
-            assert_eq!(
-                path,
-                PathBuf::from("/nonexistent/path/that/does/not/exist")
-            );
+            assert_eq!(path, PathBuf::from("/nonexistent/path/that/does/not/exist"));
         } else {
             panic!("Expected VaultNotFound error");
         }

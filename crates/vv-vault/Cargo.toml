@@ -8,4 +8,4 @@ vv-core.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 tracing.workspace = true
-tempfile = "3.10"
+tempfile = "3.25"

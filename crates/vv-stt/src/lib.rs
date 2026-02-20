@@ -1,3 +1,3 @@
 pub mod engine;
 
-pub use engine::{WhisperEngine, DecodingConfig};
+pub use engine::{DecodingConfig, WhisperEngine};

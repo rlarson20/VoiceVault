@@ -1,5 +1,5 @@
+use crate::{Trigger, VvError, VvResult};
 use std::io::{self, Write};
-use crate::{Trigger, VvResult, VvError};
 
 /// Push-to-talk trigger that waits for Enter key presses.
 ///
@@ -28,7 +28,8 @@ impl Trigger for PushToTalk {
         io::stdout().flush().unwrap();
 
         let mut line = String::new();
-        io::stdin().read_line(&mut line)
+        io::stdin()
+            .read_line(&mut line)
             .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {}", e)))?;
         Ok(())
     }
@@ -39,7 +40,8 @@ impl Trigger for PushToTalk {
         io::stdout().flush().unwrap();
 
         let mut line = String::new();
-        io::stdin().read_line(&mut line)
+        io::stdin()
+            .read_line(&mut line)
             .map_err(|e| VvError::Trigger(format!("Failed to read stdin: {}", e)))?;
         Ok(())
     }
@@ -52,7 +54,7 @@ mod tests {
     #[test]
     fn test_push_to_talk_creation() {
         let trigger = PushToTalk::new();
-        let default_trigger = PushToTalk::default();
+        let default_trigger = PushToTalk {};
 
         // Both should create valid instances
         let _ = trigger;

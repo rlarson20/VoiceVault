@@ -1,5 +1,5 @@
-use async_trait::async_trait;
 use crate::VvResult;
+use async_trait::async_trait;
 
 /// Trait for determining when to start/stop recording.
 #[async_trait]

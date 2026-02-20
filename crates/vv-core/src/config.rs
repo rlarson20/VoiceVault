@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tracing::{info, warn};
 
 /// Main configuration structure
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
     /// Vault configuration
@@ -60,17 +60,6 @@ pub struct AudioConfig {
     pub sample_rate: u32,
     /// Number of audio channels
     pub channels: u16,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            vault: VaultConfig::default(),
-            stt: SttConfig::default(),
-            trigger: TriggerConfig::default(),
-            audio: AudioConfig::default(),
-        }
-    }
 }
 
 impl Default for VaultConfig {
@@ -145,11 +134,13 @@ impl ConfigLoader {
         let config_path = Self::find_config_path(cli_path)?;
 
         info!("Loading configuration from: {}", config_path.display());
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| VvError::ConfigParse(format!("Failed to read {}: {}", config_path.display(), e)))?;
+        let content = std::fs::read_to_string(&config_path).map_err(|e| {
+            VvError::ConfigParse(format!("Failed to read {}: {}", config_path.display(), e))
+        })?;
 
-        let config: Config = toml::from_str(&content)
-            .map_err(|e| VvError::ConfigParse(format!("Failed to parse {}: {}", config_path.display(), e)))?;
+        let config: Config = toml::from_str(&content).map_err(|e| {
+            VvError::ConfigParse(format!("Failed to parse {}: {}", config_path.display(), e))
+        })?;
 
         // Validate the configuration
         Self::validate(&config)?;
@@ -173,7 +164,10 @@ impl ConfigLoader {
             if path.exists() {
                 return Ok(path);
             }
-            warn!("VOICEVAULT_CONFIG points to non-existent file: {}", path.display());
+            warn!(
+                "VOICEVAULT_CONFIG points to non-existent file: {}",
+                path.display()
+            );
         }
 
         // 3. Check XDG config directory

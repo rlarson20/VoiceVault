@@ -23,4 +23,4 @@ tokio = { workspace = true }
 vv-core = { path = "../vv-core" }
 
 # Testing
-tempfile = "3.10"
+tempfile = "3.25"

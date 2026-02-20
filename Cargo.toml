@@ -11,13 +11,13 @@ resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
-authors = ["VoiceVault Contributors"]
+authors = ["RJ Larson"]
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 tokio-util = "0.7"
 
 # Serialization
