@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 use vv_core::{Note, VaultConfig, VvError, VvResult};
 
@@ -56,6 +56,29 @@ impl VaultWriter {
             vault_path: config.path.clone(),
             folder: config.folder.clone(),
             filename_format: config.filename_format.clone(),
+        })
+    }
+
+    /// Creates a new `VaultWriter` directly from a path (for testing)
+    ///
+    /// # Arguments
+    /// * `path` - Path to the vault directory
+    ///
+    /// # Returns
+    /// A Result containing the `VaultWriter` or a `VvError`
+    ///
+    /// # Errors
+    /// `VaultNotFound`
+    pub fn new_with_path(path: &Path) -> VvResult<Self> {
+        // Validate that vault path exists
+        if !path.exists() {
+            return Err(VvError::VaultNotFound(path.to_path_buf()));
+        }
+
+        Ok(Self {
+            vault_path: path.to_path_buf(),
+            folder: "voice-notes".to_string(),
+            filename_format: "%Y-%m-%dT%H-%M-%S".to_string(),
         })
     }
 

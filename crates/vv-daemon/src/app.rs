@@ -5,6 +5,7 @@
 use crate::cli::Args;
 use anyhow::Result;
 use candle_core::Device;
+use candle_core::backend::BackendDevice;
 use chrono::Local;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -65,8 +66,8 @@ impl App {
         info!("Vault: {:?}", config.vault.path);
         info!("Model: {}", config.stt.model);
 
-        // Initialize STT engine (use CPU for MVP, Metal support later)
-        let device = Device::Cpu; // MVP: always use CPU
+        // Initialize STT engine with device selection
+        let device = Self::select_device();
         info!("Using device: {:?}", device);
 
         info!("Loading Whisper model...");
@@ -120,6 +121,34 @@ impl App {
         }
     }
 
+    /// Select the best available device for Whisper inference
+    ///
+    /// On macOS with Apple Silicon, this will use Metal (GPU) acceleration.
+    /// On other platforms, it will fall back to CPU.
+    #[must_use]
+    fn select_device() -> Device {
+        #[cfg(all(target_os = "macos", feature = "metal"))]
+        {
+            // Try to use Metal on macOS
+            match candle_core::MetalDevice::new(0) {
+                Ok(device) => {
+                    info!("Using Metal GPU acceleration");
+                    Device::Metal(device)
+                },
+                Err(e) => {
+                    warn!("Metal initialization failed: {}, falling back to CPU", e);
+                    Device::Cpu
+                },
+            }
+        }
+
+        #[cfg(not(all(target_os = "macos", feature = "metal")))]
+        {
+            // Use CPU on other platforms or when Metal is not enabled
+            Device::Cpu
+        }
+    }
+
     /// Run in transcribe-only mode: load model, transcribe file, print result, exit
     fn run_transcribe_only(&self, audio_path: &Path) -> Result<()> {
         info!("Transcribe-only mode: {}", audio_path.display());
@@ -143,8 +172,8 @@ impl App {
 
         info!("Using model: {}", model);
 
-        // Initialize STT engine
-        let device = Device::Cpu;
+        // Initialize STT engine with device selection
+        let device = Self::select_device();
         info!("Loading Whisper model...");
 
         let mut stt_engine = thread::spawn(move || WhisperEngine::load(&model, &device, None))

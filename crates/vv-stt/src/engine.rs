@@ -485,3 +485,27 @@ impl WhisperEngine {
 
 // Add std::io::Read import for cursor operations
 use std::io::Read;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Mock Whisper engine for testing - returns fixed transcription
+    #[allow(dead_code)]
+    pub struct MockWhisperEngine {
+        pub transcription: String,
+    }
+
+    #[allow(dead_code)]
+    impl MockWhisperEngine {
+        pub fn new(transcription: &str) -> Self {
+            Self {
+                transcription: transcription.to_string(),
+            }
+        }
+
+        pub fn transcribe(&mut self, _wav_path: &Path) -> VvResult<String> {
+            Ok(self.transcription.clone())
+        }
+    }
+}
