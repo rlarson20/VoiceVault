@@ -189,7 +189,7 @@ impl ConfigLoader {
     }
 
     /// Validate configuration values
-    fn validate(config: &Config) -> VvResult<()> {
+    pub fn validate(config: &Config) -> VvResult<()> {
         // Validate vault path
         if !config.vault.path.exists() {
             return Err(VvError::VaultNotFound(config.vault.path.clone()));

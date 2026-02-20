@@ -6,6 +6,9 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+# Internal crates
+vv-core = { workspace = true }
+
 # Candle ML framework
 candle-core = "0.8"
 candle-transformers = "0.8"

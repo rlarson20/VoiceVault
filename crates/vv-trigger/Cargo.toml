@@ -22,6 +22,6 @@ workspace = true
 optional = true
 
 [features]
-default = []
+default = ["push_to_talk"]
 push_to_talk = ["tokio", "tracing", "thiserror"]
 voice_activity = ["tokio", "tracing", "thiserror"]

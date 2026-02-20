@@ -2604,6 +2604,7 @@ name = "vv-daemon"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "tokio",
  "tracing",
@@ -2627,6 +2628,7 @@ dependencies = [
  "tokenizers",
  "tokio",
  "tracing",
+ "vv-core",
 ]
 
 [[package]]
