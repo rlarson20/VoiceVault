@@ -1,0 +1,11 @@
+[package]
+name = "vv-vault"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+vv-core.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tempfile = "3.10"

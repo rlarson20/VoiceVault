@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/vv-core",
+    "crates/vv-vault",
 ]
 resolver = "2"
 
