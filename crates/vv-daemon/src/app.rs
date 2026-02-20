@@ -90,7 +90,7 @@ impl App {
         info!("VoiceVault ready");
 
         // Set up signal handling
-        Self::main_loop(audio_capture, stt_engine, vault_writer, trigger).await?;
+        Self::main_loop(audio_capture, stt_engine, vault_writer, trigger, self.args.once).await?;
 
         info!("VoiceVault exited cleanly");
         Ok(())
@@ -159,6 +159,7 @@ impl App {
         stt_engine: Arc<Mutex<WhisperEngine>>,
         vault_writer: Arc<Mutex<VaultWriter>>,
         trigger: PushToTalk,
+        once: bool,
     ) -> Result<()> {
         loop {
             tokio::select! {
@@ -264,6 +265,12 @@ impl App {
                     match vault_writer_clone.lock().unwrap().write(&note) {
                         Ok(path) => {
                             info!("Saved note to: {}", path.display());
+
+                            // Exit if --once flag is set
+                            if once {
+                                info!("Exiting after single recording (--once mode)");
+                                break;
+                            }
                         }
                         Err(e) => {
                             error!("Failed to write note: {}", e);

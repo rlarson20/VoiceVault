@@ -170,7 +170,7 @@ channels = 1
             capture_output=True,
             text=True,
             timeout=120,
-            env={**os.environ, "RUST_LOG": "info"}
+            env={**os.environ, "RUST_LOG": "error"}
         )
 
         if result.returncode != 0:
@@ -180,8 +180,17 @@ channels = 1
             console.print()
             return False
 
-        # Extract transcription from output (it's printed to stdout)
-        transcription = result.stdout.strip()
+        # Extract transcription from stdout (it's printed with surrounding newlines)
+        # The transcription is the actual text content, not log messages
+        lines = result.stdout.strip().split('\n')
+        # Filter out empty lines and find the actual transcription
+        transcription_lines = [line.strip() for line in lines if line.strip() and not line.startswith('[') and 'INFO' not in line and 'DEBUG' not in line and 'WARN' not in line and 'ERROR' not in line]
+        transcription = ' '.join(transcription_lines) if transcription_lines else result.stdout.strip()
+
+        # Remove ANSI escape codes
+        import re
+        ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+        transcription = ansi_escape.sub('', transcription)
 
         console.print(f"  Output: {transcription[:100]}...")
 
@@ -298,7 +307,7 @@ channels = 1
         if audio_file:
             results.append((
                 "Transcription (JFK Sample)",
-                self.test_transcription(audio_file, ["freedom", "people"])
+                self.test_transcription(audio_file, ["country", "ask", "americans"])
             ))
 
         # Test 3: Synthesized audio
@@ -388,7 +397,7 @@ Examples:
         try:
             subprocess.run(
                 ["cargo", "run", "-p", "vv-daemon", "--release", "--",
-                 "--config", str(runner.config_file), "-vvv"],
+                 "--config", str(runner.config_file), "-vvv", "--once"],
                 cwd=runner.project_root
             )
         except KeyboardInterrupt:

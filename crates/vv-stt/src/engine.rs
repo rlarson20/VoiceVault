@@ -28,6 +28,7 @@ pub struct WhisperEngine {
     device: Device,
     mel_filters: Vec<f32>,
     config: whisper::Config,
+    model_id: String,
 }
 
 impl WhisperEngine {
@@ -98,6 +99,37 @@ impl WhisperEngine {
             VvError::Transcription(format!("Failed to create Whisper model: {}", e))
         })?;
 
+        // Verify model and tokenizer compatibility
+        info!("Model vocab_size: {}", config.vocab_size);
+        info!(
+            "Tokenizer vocab_size: {}",
+            tokenizer.get_vocab_size(true)
+        );
+        info!(
+            "Model max_target_positions: {}",
+            config.max_target_positions
+        );
+
+        // Verify critical special tokens exist
+        use tracing::debug;
+        for token_name in &[
+            whisper::SOT_TOKEN,
+            whisper::EOT_TOKEN,
+            whisper::TRANSCRIBE_TOKEN,
+            whisper::NO_TIMESTAMPS_TOKEN,
+        ] {
+            match tokenizer.token_to_id(token_name) {
+                Some(id) => debug!("Token '{}' -> id {}", token_name, id),
+                None => {
+                    use tracing::warn;
+                    warn!(
+                        "WARNING: Token '{}' not found in tokenizer!",
+                        token_name
+                    )
+                }
+            }
+        }
+
         info!("Whisper model loaded successfully");
         Ok(Self {
             model,
@@ -105,6 +137,7 @@ impl WhisperEngine {
             device: device.clone(),
             mel_filters,
             config,
+            model_id: model_id.to_string(),
         })
     }
 
@@ -150,11 +183,42 @@ impl WhisperEngine {
         // Decode using greedy sampling
         let tokens = self.decode_greedy(&audio_features)?;
 
+        // Log tokens before decoding
+        use tracing::{debug, warn};
+        debug!("Decoding {} tokens to text", tokens.len());
+        for (i, token_id) in tokens.iter().enumerate().take(20) {
+            if let Some(token) = self.tokenizer.id_to_token(*token_id) {
+                debug!(
+                    "Token {}: id='{}' text='{}'",
+                    i,
+                    token_id,
+                    token.replace('Ġ', " ").replace('\n', "\\n").replace('\r', "\\r")
+                );
+            } else {
+                warn!(
+                    "Token {}: id='{}' has no mapping in tokenizer",
+                    i, token_id
+                );
+            }
+        }
+
         // Decode tokens to text
         let text = self
             .tokenizer
             .decode(&tokens, true)
-            .map_err(|e| VvError::Transcription(format!("Tokenization failed: {}", e)))?;
+            .map_err(|e| {
+                VvError::Transcription(format!(
+                    "Tokenization failed: {} (first 10 tokens: {:?})",
+                    e,
+                    &tokens[..tokens.len().min(10)]
+                ))
+            })?;
+
+        debug!(
+            "Decoded text ({} chars): {}",
+            text.chars().count(),
+            text.chars().take(100).collect::<String>()
+        );
 
         Ok(text)
     }
@@ -277,6 +341,8 @@ impl WhisperEngine {
 
     /// Simple greedy decoding (no temperature fallback)
     fn decode_greedy(&mut self, audio_features: &Tensor) -> VvResult<Vec<u32>> {
+        use tracing::{debug, info, warn};
+
         // Get special tokens
         let sot_token = self
             .get_token_id(whisper::SOT_TOKEN)
@@ -291,10 +357,33 @@ impl WhisperEngine {
             .get_token_id(whisper::NO_TIMESTAMPS_TOKEN)
             .ok_or_else(|| VvError::Transcription("No timestamps token not found".to_string()))?;
 
-        let sample_len = self.config.max_target_positions;
+        let max_iterations = self.config.max_target_positions;
+        info!("Starting greedy decode (max {} iterations)", max_iterations);
+
         let mut tokens = vec![sot_token, transcribe_token, no_timestamps_token];
 
-        for i in 0..sample_len {
+        // Add language token ONLY for multilingual models
+        // English-only models (.en) should not have the language token
+        if !self.is_english_only() {
+            if let Some(lang_token) = self.get_token_id("<|en|>") {
+                tokens.push(lang_token);
+                debug!("Added language token <|en|> for multilingual model");
+            }
+        } else {
+            debug!("Skipping language token for English-only model ({})", self.model_id);
+        }
+
+        for i in 0..max_iterations {
+            // Log progress every 50 iterations
+            if i % 50 == 0 && i > 0 {
+                info!(
+                    "Decode iteration {}/{} ({} tokens so far)",
+                    i,
+                    max_iterations,
+                    tokens.len()
+                );
+            }
+
             let tokens_tensor = Tensor::new(tokens.as_slice(), &self.device)
                 .map_err(|e| {
                     VvError::Transcription(format!("Failed to create tokens tensor: {}", e))
@@ -312,37 +401,80 @@ impl WhisperEngine {
                     VvError::Transcription(format!("Decoder forward pass failed: {}", e))
                 })?;
 
-            let (_batch_size, seq_len, _vocab_size) = decoder_output.dims3().map_err(|e| {
+            let (_batch_size, seq_len, _hidden_size) = decoder_output.dims3().map_err(|e| {
                 VvError::Transcription(format!("Failed to get decoder output dims: {}", e))
             })?;
 
-            let logits = decoder_output
+            // The decoder returns hidden states - must project to logits via final_linear
+            let hidden_states = decoder_output
                 .i((..1, seq_len - 1..))
-                .map_err(|e| VvError::Transcription(format!("Failed to slice logits: {}", e)))?
+                .map_err(|e| VvError::Transcription(format!("Failed to slice hidden states: {}", e)))?;
+
+            let logits = self
+                .model
+                .decoder
+                .final_linear(&hidden_states)
+                .map_err(|e| VvError::Transcription(format!("Failed to apply final linear layer: {}", e)))?
                 .i(0)
                 .map_err(|e| VvError::Transcription(format!("Failed to remove batch dim: {}", e)))?
                 .i(0)
                 .map_err(|e| VvError::Transcription(format!("Failed to remove seq dim: {}", e)))?;
 
-            let next_token = logits
-                .argmax(0)
-                .map_err(|e| VvError::Transcription(format!("Argmax failed: {}", e)))?
-                .to_scalar::<u32>()
-                .map_err(|e| VvError::Transcription(format!("Failed to get token id: {}", e)))?;
+            // Convert logits to vec so we can apply suppress_tokens
+            let mut logits_vec = logits.to_vec1::<f32>().map_err(|e| {
+                VvError::Transcription(format!("Failed to convert logits to vec: {}", e))
+            })?;
 
+            // Apply suppress tokens (prevents generation of certain tokens)
+            for &token_id in &self.config.suppress_tokens {
+                if (token_id as usize) < logits_vec.len() {
+                    logits_vec[token_id as usize] = f32::NEG_INFINITY;
+                }
+            }
+
+            // Find argmax manually
+            let next_token = logits_vec
+                .iter()
+                .enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i as u32)
+                .ok_or_else(|| VvError::Transcription("Failed to find max token".to_string()))?;
+
+            debug!("Token {}: {}", tokens.len(), next_token);
             tokens.push(next_token);
 
-            if next_token == eot_token || tokens.len() >= self.config.max_target_positions {
+            // Early exit if we've generated too many tokens without EOT
+            if tokens.len() > 100 && next_token != eot_token {
+                warn!(
+                    "Generated {} tokens without EOT, forcing exit",
+                    tokens.len()
+                );
+                break;
+            }
+
+            if next_token == eot_token {
+                info!("EOT token reached at iteration {}", i);
+                break;
+            }
+
+            if tokens.len() >= max_iterations {
+                warn!("Reached max iterations ({})", max_iterations);
                 break;
             }
         }
 
+        info!("Decode complete: {} tokens generated", tokens.len());
         Ok(tokens)
     }
 
     /// Get token ID from tokenizer
     fn get_token_id(&self, token: &str) -> Option<u32> {
         self.tokenizer.token_to_id(token)
+    }
+
+    /// Check if this is an English-only model
+    fn is_english_only(&self) -> bool {
+        self.model_id.ends_with(".en")
     }
 }
 

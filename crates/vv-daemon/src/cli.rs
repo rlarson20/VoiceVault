@@ -29,4 +29,8 @@ pub struct Args {
     /// Transcribe a single audio file and exit (skips daemon mode)
     #[arg(long, value_name = "FILE")]
     pub transcribe_only: Option<PathBuf>,
+
+    /// Record once and exit after successful transcription
+    #[arg(long)]
+    pub once: bool,
 }
