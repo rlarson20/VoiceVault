@@ -21,7 +21,7 @@ async fn main() {
     // Build env filter: use user's level for VoiceVault, but suppress noisy external crates
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
-            tracing_subscriber::EnvFilter::new(format!("{},hf_hub=warn,indicatif=warn", log_level))
+            tracing_subscriber::EnvFilter::new(format!("{log_level},hf_hub=warn,indicatif=warn"))
         });
 
     tracing_subscriber::fmt()

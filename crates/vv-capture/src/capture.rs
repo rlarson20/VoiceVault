@@ -1,3 +1,9 @@
+#![allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    reason = "need to figure out how to properly fix these errors; have similar issues with Volta pedantic"
+)]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, SupportedStreamConfig};
 use std::sync::mpsc::Sender;
@@ -39,6 +45,8 @@ pub struct AudioCapture {
 
 impl AudioCapture {
     /// Create a new audio capture instance using the default input device
+    /// # Errors
+    /// `NoDevice`
     pub fn new() -> VvResult<Self> {
         let host = cpal::default_host();
         let device = host.default_input_device().ok_or(CaptureError::NoDevice)?;
@@ -60,7 +68,9 @@ impl AudioCapture {
     /// Start recording audio
     /// Sends f32 mono 16kHz samples via the channel
     /// Stops when the stop receiver is signaled
-    pub fn record(&self, tx: Sender<Vec<f32>>, stop: oneshot::Receiver<()>) -> VvResult<()> {
+    /// # Errors
+    /// `UnsupportedFormat`
+    pub fn record(&self, tx: &Sender<Vec<f32>>, stop: oneshot::Receiver<()>) -> VvResult<()> {
         let sample_format = self.config.sample_format();
 
         let sample_rate = self.config.config().sample_rate.0;
@@ -112,7 +122,7 @@ impl AudioCapture {
         let callback = move |data: &[T], _: &cpal::InputCallbackInfo| {
             // Check for stop signal (non-blocking)
             match stop.try_recv() {
-                Ok(_) | Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
+                Ok(()) | Err(tokio::sync::oneshot::error::TryRecvError::Closed) => {
                     // Stop signal received, don't send more data
                     return;
                 },
@@ -126,17 +136,17 @@ impl AudioCapture {
             let mono_samples: Vec<f32> = if source_channels > 1 {
                 samples
                     .chunks(source_channels as usize)
-                    .map(|chunk| chunk.iter().sum::<f32>() / source_channels as f32)
+                    .map(|chunk| chunk.iter().sum::<f32>() / f32::from(source_channels))
                     .collect()
             } else {
                 samples
             };
 
             // Resample to 16kHz if needed (simple linear interpolation for MVP)
-            let resampled = if source_sample_rate != WHISPER_SAMPLE_RATE {
-                linear_resample(&mono_samples, source_sample_rate, WHISPER_SAMPLE_RATE)
-            } else {
+            let resampled = if source_sample_rate == WHISPER_SAMPLE_RATE {
                 mono_samples
+            } else {
+                linear_resample(&mono_samples, source_sample_rate, WHISPER_SAMPLE_RATE)
             };
 
             // Send to channel (ignore errors if receiver is closed)
@@ -157,7 +167,7 @@ fn linear_resample(input: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
         return input.to_vec();
     }
 
-    let ratio = from_rate as f64 / to_rate as f64;
+    let ratio = f64::from(from_rate) / f64::from(to_rate);
     let output_len = ((input.len() as f64) / ratio).ceil() as usize;
 
     (0..output_len)
@@ -173,6 +183,8 @@ fn linear_resample(input: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
 }
 
 /// Write samples as a WAV file
+/// # Errors
+/// Result
 pub fn samples_to_wav(samples: &[f32], path: &std::path::Path) -> VvResult<()> {
     let spec = hound::WavSpec {
         channels: 1,
@@ -182,22 +194,22 @@ pub fn samples_to_wav(samples: &[f32], path: &std::path::Path) -> VvResult<()> {
     };
 
     let writer = hound::WavWriter::create(path, spec)
-        .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to create WAV: {}", e)))?;
+        .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to create WAV: {e}")))?;
 
     let mut writer = writer;
 
     for &sample in samples {
         // Clamp to [-1.0, 1.0] and convert to i16
         let clamped = sample.clamp(-1.0, 1.0);
-        let i16_sample = (clamped * i16::MAX as f32) as i16;
-        writer.write_sample(i16_sample).map_err(|e| {
-            vv_core::VvError::AudioCapture(format!("Failed to write sample: {}", e))
-        })?;
+        let i16_sample = (clamped * f32::from(i16::MAX)) as i16;
+        writer
+            .write_sample(i16_sample)
+            .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to write sample: {e}")))?;
     }
 
     writer
         .finalize()
-        .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to finalize WAV: {}", e)))?;
+        .map_err(|e| vv_core::VvError::AudioCapture(format!("Failed to finalize WAV: {e}")))?;
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-/// VoiceVault daemon - Voice-activated personal assistant
+/// `VoiceVault` daemon - Voice-activated personal assistant
 #[derive(Parser, Debug)]
 #[command(name = "vv-daemon")]
 #[command(about = "VoiceVault daemon - Voice-activated personal assistant", long_about = None)]

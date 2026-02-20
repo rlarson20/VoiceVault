@@ -1,3 +1,7 @@
+#![allow(
+    clippy::cast_precision_loss,
+    reason = "need to figure out how to properly fix this error; have similar issues with Volta pedantic"
+)]
 use crate::cli::Args;
 use anyhow::Result;
 use candle_core::Device;
@@ -35,7 +39,7 @@ impl App {
 
         // Handle transcribe-only mode
         if let Some(audio_path) = &self.args.transcribe_only {
-            return self.run_transcribe_only(audio_path).await;
+            return self.run_transcribe_only(audio_path);
         }
 
         info!("Starting daemon mode");
@@ -73,7 +77,7 @@ impl App {
             })
             .join()
             .map_err(|e| {
-                VvError::Transcription(format!("Failed to join loading thread: {:?}", e))
+                VvError::Transcription(format!("Failed to join loading thread: {e:?}"))
             })??,
         ));
 
@@ -90,7 +94,14 @@ impl App {
         info!("VoiceVault ready");
 
         // Set up signal handling
-        Self::main_loop(audio_capture, stt_engine, vault_writer, trigger, self.args.once).await?;
+        Self::main_loop(
+            audio_capture,
+            stt_engine,
+            vault_writer,
+            trigger,
+            self.args.once,
+        )
+        .await?;
 
         info!("VoiceVault exited cleanly");
         Ok(())
@@ -101,7 +112,7 @@ impl App {
         // Try to load from config file, or use defaults
         match ConfigLoader::load(args.config.clone()) {
             Ok(config) => Ok(config),
-            Err(VvError::Config(_)) | Err(VvError::ConfigNotFound(_)) => {
+            Err(VvError::Config(_) | VvError::ConfigNotFound(_)) => {
                 warn!("No config file found, using defaults");
                 Ok(Config::default())
             },
@@ -110,7 +121,7 @@ impl App {
     }
 
     /// Run in transcribe-only mode: load model, transcribe file, print result, exit
-    async fn run_transcribe_only(&self, audio_path: &Path) -> Result<()> {
+    fn run_transcribe_only(&self, audio_path: &Path) -> Result<()> {
         info!("Transcribe-only mode: {}", audio_path.display());
 
         // Verify audio file exists
@@ -138,7 +149,7 @@ impl App {
 
         let mut stt_engine = thread::spawn(move || WhisperEngine::load(&model, &device, None))
             .join()
-            .map_err(|e| anyhow::anyhow!("Failed to join loading thread: {:?}", e))??;
+            .map_err(|e| anyhow::anyhow!("Failed to join loading thread: {e:?}"))??;
 
         // Transcribe
         info!("Transcribing: {}", audio_path.display());
@@ -146,7 +157,7 @@ impl App {
 
         // Print result
         println!();
-        println!("{}", text);
+        println!("{text}");
         println!();
 
         info!("Transcription complete");
@@ -183,7 +194,7 @@ impl App {
 
                     // Spawn audio capture in a separate thread
                     let capture_result = thread::spawn(move || {
-                        audio_capture.record(tx, stop_rx)
+                        audio_capture.record(&tx, stop_rx)
                     });
 
                     // Wait for stop signal
@@ -256,7 +267,7 @@ impl App {
                     let note = Note::new(
                         text.clone(),
                         Local::now(),
-                        duration_secs as f64,
+                        f64::from(duration_secs),
                         TriggerKind::PushToTalk,
                     );
 

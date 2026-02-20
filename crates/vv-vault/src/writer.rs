@@ -44,6 +44,8 @@ impl VaultWriter {
     /// ```ignore
     /// let writer = VaultWriter::new(&config)?;
     /// ```
+    /// # Errors
+    /// `VaultNotFound`
     pub fn new(config: &VaultConfig) -> VvResult<Self> {
         // Validate that vault path exists
         if !config.path.exists() {
@@ -72,7 +74,7 @@ impl VaultWriter {
     /// * `note` - The note to write
     ///
     /// # Returns
-    /// A Result containing the path to the written file or a VvError
+    /// A Result containing the path to the written file or a `VvError`
     ///
     /// # Examples
     ///
@@ -86,6 +88,8 @@ impl VaultWriter {
     /// let path = writer.write(&note)?;
     /// info!("Note saved to: {}", path.display());
     /// ```
+    /// # Errors
+    /// `VaultWrite`
     pub fn write(&self, note: &Note) -> VvResult<PathBuf> {
         // Create the target folder if it doesn't exist
         let target_dir = self.vault_path.join(&self.folder);
@@ -101,8 +105,8 @@ impl VaultWriter {
 
         // Generate filename using the configured format
         let filename = note.recorded_at.format(&self.filename_format).to_string();
-        let file_path = target_dir.join(format!("{}.md", filename));
-        let temp_path = target_dir.join(format!("{}.md.tmp", filename));
+        let file_path = target_dir.join(format!("{filename}.md"));
+        let temp_path = target_dir.join(format!("{filename}.md.tmp"));
 
         debug!("Writing note to temporary file: {}", temp_path.display());
 
