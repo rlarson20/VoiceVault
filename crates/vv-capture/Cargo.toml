@@ -18,3 +18,9 @@ tracing = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }
+
+# Internal crates
+vv-core = { path = "../vv-core" }
+
+# Testing
+tempfile = "3.10"
