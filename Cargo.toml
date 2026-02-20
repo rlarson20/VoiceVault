@@ -1,6 +1,11 @@
 [workspace]
 members = [
     "crates/vv-core",
+    "crates/vv-capture",
+    "crates/vv-stt",
+    "crates/vv-trigger",
+    "crates/vv-vault",
+    "crates/vv-daemon",
 ]
 resolver = "2"
 
