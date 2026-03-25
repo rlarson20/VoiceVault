@@ -34,12 +34,7 @@ serde_json = "1.0.149"
 metal = ["candle-core/metal", "candle-transformers/metal", "candle-nn/metal"]
 
 [dev-dependencies]
-criterion = "0.8.2"
 wav = "1.0.1"
-
-[[bench]]
-name = "tensor_allocation"
-harness = false
 
 [build-dependencies]
 # Built-in data files are included via include_bytes! in the code
