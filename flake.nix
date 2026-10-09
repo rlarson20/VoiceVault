@@ -20,6 +20,8 @@
       devShells = forAll ({ pkgs, rust }: {
         default = pkgs.mkShell {
           packages = [ rust pkgs.sccache ];
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.openssl pkgs.alsa-lib ];
           RUSTC_WRAPPER = "sccache";
         };
       });
