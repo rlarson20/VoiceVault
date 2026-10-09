@@ -31,12 +31,12 @@ candle-core = "0.8"
 vv-core.workspace = true
 vv-vault.workspace = true
 vv-capture.workspace = true
-vv-stt = { workspace = true, features = ["metal"] }
+vv-stt.workspace = true
 vv-trigger.workspace = true
 
 [dev-dependencies]
 tempfile = "3"
 
 [features]
-default = ["metal"]
-metal = []
+default = []
+metal = ["vv-stt/metal", "candle-core/metal"]
