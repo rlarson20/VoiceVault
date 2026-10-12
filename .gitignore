@@ -11,3 +11,5 @@ docs/*
 # Virtual environments
 .venv
 target/
+
+.direnv/
